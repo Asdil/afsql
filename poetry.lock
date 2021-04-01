@@ -1,0 +1,33 @@
+[[package]]
+name = "dbutils"
+version = "2.0"
+description = "Database connections for multi-threaded environments."
+category = "main"
+optional = false
+python-versions = "*"
+
+[[package]]
+name = "pymysql"
+version = "1.0.2"
+description = "Pure Python MySQL Driver"
+category = "main"
+optional = false
+python-versions = ">=3.6"
+
+[package.extras]
+ed25519 = ["PyNaCl (>=1.4.0)"]
+rsa = ["cryptography"]
+
+[metadata]
+lock-version = "1.1"
+python-versions = "^3.6"
+content-hash = "5a9c7b5babac9a1d4568b82e7ac1d0658bf84d3c40b08a26ccc71f2a737a7114"
+
+[metadata.files]
+dbutils = [
+    {file = "DBUtils-2.0.tar.gz", hash = "sha256:4f3cb5279560b0b5197c22f7b0b1980da829b743f1a422e38deb28c14475318c"},
+]
+pymysql = [
+    {file = "PyMySQL-1.0.2-py3-none-any.whl", hash = "sha256:41fc3a0c5013d5f039639442321185532e3e2c8924687abe6537de157d403641"},
+    {file = "PyMySQL-1.0.2.tar.gz", hash = "sha256:816927a350f38d56072aeca5dfb10221fe1dc653745853d30a216637f5d7ad36"},
+]

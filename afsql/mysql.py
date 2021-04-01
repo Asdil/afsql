@@ -20,7 +20,7 @@ class Mysql:
     """
     Mysql类用于mysql连接池操作
     """
-    def __init__(self, host, port, user, password, database, type=0):
+    def __init__(self, host, port, user, password, database, pool=1):
         """__init__(self):方法用于
 
         Parameters
@@ -39,7 +39,7 @@ class Mysql:
         Returns
         ----------
         """
-        if type == 0:
+        if pool == 0:
             self.pool = PersistentDB(
                 creator=pymysql,  # 使用连接数据库模块
                 maxusage=None,  # 连接超时时间

@@ -11,8 +11,8 @@
 -------------------------------------------------
 """
 __author__ = 'Asdil'
-from DBUtils.PersistentDB import PersistentDB
-from DBUtils.PooledDB import PooledDB
+from dbutils.persistent_db import PersistentDB
+from dbutils.pooled_db import PooledDB
 import pymysql
 
 

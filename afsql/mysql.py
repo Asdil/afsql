@@ -59,10 +59,7 @@ class Mysql:
                 creator=pymysql,  # 使用连接数据库模块
                 maxusage=None,  # 连接超时时间
                 setsession=[],  # 开始会话前执行的操作
-                ping=0,  # ping服务器端查看是否可用
-                closeable=False,  # 实际上被忽略，供下次使用，再线程关闭时，才会自动关闭链接。如果为True时， conn.close()则关闭链接，
-                # 那么再次调用pool.connection时就会报错，因为已经真的关闭了连接（pool.steady_connection()可以获取一个新的链接
-                threadlocal=None,  # 本线程独享值得对象，用于保存链接对象，如果链接对象被重置
+                ping=1,  # ping服务器端查看是否可用
                 host=host,
                 port=port,
                 user=user,
@@ -156,3 +153,9 @@ def optimize_expression(sql, params):
             codes.append('%s')
     sql = sql % tuple(codes)
     return sql, new_params
+
+
+if __name__ == '__main__':
+    db = Mysql(host='127.0.0.1', port=3306, user='root', password='', database='mysql')
+    data = db.select_all("show tables;")
+    print(data)

@@ -87,3 +87,17 @@ class Neo4j:
             result = session.write_transaction(self._cypher_run, cypher=cypher, rtype=rtype)
         return result
 
+
+def get_help():
+    """get_help方法用于帮助使用
+    """
+    print("from afsql import neo4j")
+    print("ip = '127.0.0.1'")
+    print("port = '7687'")
+    print("user = 'neo4j'")
+    print("password = 'neo4j'")
+    print("db = neo4j.Neo4j(ip, port, user, password)")
+    print("""cmd = match (p) where id(p)=1 return p""")
+    print("result = db.run(cmd, rtype='data') #rtype='data' or 'graph' or None ")
+    print("db.close()")
+

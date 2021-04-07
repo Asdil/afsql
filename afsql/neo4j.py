@@ -85,7 +85,7 @@ class Neo4j:
         """
         result = None
         with self._driver.session() as session:
-            if 'return' in cypher or 'RETURN' in cypher:
+            if ' return ' in cypher or ' RETURN ' in cypher:
                 result = session.read_transaction(self._cypher_run, cypher=cypher, rtype=rtype)  # 查询操作
             else:
                 session.write_transaction(self._cypher_run, cypher=cypher, rtype=rtype)  # 写操作

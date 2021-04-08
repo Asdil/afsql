@@ -118,7 +118,7 @@ class Mysql:
         Returns
         ----------
         """
-        if not args:
+        if args:
             args = tuple(args)
         conn = self.pool.connection(shareable=False)
         cursor = conn.cursor()

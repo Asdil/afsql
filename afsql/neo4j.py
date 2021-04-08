@@ -102,6 +102,6 @@ def get_help():
     print("password = 'neo4j'")
     print("db = neo4j.Neo4j(ip, port, user, password)")
     print("""cmd = match (p) where id(p)=1 return p""")
-    print("result = db.run(cmd, rtype='data') #rtype='data' or 'graph' or None ")
+    print("result = db.run(cmd, rtype='data') # rtype='data' or 'graph' or None ")
     print("db.close()")
 

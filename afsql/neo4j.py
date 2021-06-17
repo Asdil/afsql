@@ -18,15 +18,13 @@ class Neo4j:
     """
     Neo4j类用于连接执行neo4j相关命令
     """
-    def __init__(self, ip, port, user, password):
+    def __init__(self, url, user, password):
         """__init__(self):方法用于
 
         Parameters
         ----------
-        ip : str
+        url : str
             neo4j服务器地址
-        port : str or int
-            端口号
         user : str
             用户名
         password : str
@@ -34,7 +32,7 @@ class Neo4j:
         Returns
         ----------
         """
-        self._driver = GraphDatabase.driver(f"neo4j://{ip}:{port}", auth=(user, password))
+        self._driver = GraphDatabase.driver(url, auth=(user, password))
 
     def close(self):
         """close方法用于关闭连接

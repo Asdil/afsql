@@ -169,3 +169,7 @@ class Pyneo4j:
                 else:
                     session.write_transaction(self._cypher_run, cypher=cypher, rtype=rtype)  # 写操作
         return result
+
+    def delete_all(self):
+        """delete_all方法用于删除图数据所有数据,慎用"""
+        self._driver2.delete_all()

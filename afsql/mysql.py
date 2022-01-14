@@ -11,7 +11,6 @@
 -------------------------------------------------
 """
 __author__ = 'Asdil'
-
 import pymysql
 from dbutils.pooled_db import PooledDB
 from dbutils.persistent_db import PersistentDB
@@ -22,7 +21,6 @@ class Mysql:
     Mysql类用于mysql连接池操作
     PersistentDB主要为单线程应用提供一个持久的连接，而PooledDB通常可以为多线程应用提供线程池服务
     """
-
     def __init__(self, host, port, user, password, database, pool=1):
         """__init__(self):方法用于
 
@@ -47,7 +45,7 @@ class Mysql:
                 creator=pymysql,  # 使用连接数据库模块
                 maxusage=None,  # 连接超时时间
                 setsession=[],  # 开始会话前执行的操作
-                ping=1,  # ping服务器端查看是否可用
+                ping=0,  # ping服务器端查看是否可用
                 closeable=False,  # 实际上被忽略，供下次使用，再线程关闭时，才会自动关闭链接。如果为True时， conn.close()则关闭链接，
                 # 那么再次调用pool.connection时就会报错，因为已经真的关闭了连接（pool.steady_connection()可以获取一个新的链接
                 threadlocal=None,  # 本线程独享值得对象，用于保存链接对象，如果链接对象被重置
@@ -77,13 +75,11 @@ class Mysql:
         ----------
         sql : str
             sql 语句
-        args : list or tuple or None
+        args : list or tuple
             参数
         Returns
         ----------
         """
-        if args:
-            args = tuple(args)
         conn = self.pool.connection(shareable=False)
         cursor = conn.cursor()
         cursor.execute(sql, args)
@@ -118,10 +114,7 @@ class Mysql:
 
         Parameters
         ----------
-        sql : str
-            sql语句
-        args: list or tuple or None
-            参数
+        param : str
 
         Returns
         ----------
@@ -171,7 +164,7 @@ def optimize_expression(sql, params):
     codes = []
     if 'values' in sql.lower():
         for param in params:
-            new_params.extend(list(map(str, param)))
+            new_params.extend(param)
             tmp = ','.join(['%s'] * len(param))
             tmp = f'({tmp})'
             codes.append(tmp)

@@ -169,6 +169,7 @@ class Pyneo4j:
 
     def delete_all(self):
         """delete_all方法用于删除图数据所有数据,慎用"""
+        self._check_connect()  # 测试连接
         self.driver.delete_all()
 
     def run(self, cyper):
@@ -181,6 +182,7 @@ class Pyneo4j:
         Returns
         ----------
         """
+        self._check_connect()  # 测试连接
         cyper = cyper.lower()
         ret = self.driver.run(cyper)
         if 'return' in cyper:
@@ -211,6 +213,7 @@ class Pyneo4j:
         Returns
         ----------
         """
+        self._check_connect()  # 测试连接
         node1 = self.node_matcher.match(*label1).where(**parameters1).first()
         node2 = self.node_matcher.match(*label2).where(**parameters2).first()
         relationships = self.relationship_matcher.match([node1, node2], r_type=r_label)
@@ -253,6 +256,7 @@ class Pyneo4j:
                 if key not in d1:
                     d1[key] = d2[key]
             return d1
+        self._check_connect()  # 测试连接
         if id:
             cyper = f'match g=(node1)-[r]->(node2) where id(r)={id} return g'
             graph = self.driver.evaluate(cyper)

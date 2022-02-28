@@ -68,6 +68,11 @@ class Mysql:
                 database=database,
                 charset='utf8')
 
+    def close_all(self):
+        """close_all方法用于关闭数据库连接
+        """
+        self.pool.close()
+
     def select_one(self, sql, args=None):
         """select_one方法用于查询一条数据
 

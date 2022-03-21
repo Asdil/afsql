@@ -16,14 +16,13 @@ from py2neo import Graph, Relationship, Node
 from py2neo.matching import RelationshipMatcher, NodeMatcher
 
 
-
 class Pyneo4j:
     """
-    Neo4j类用于
+    Neo4j类用于操作neo4j图数据库
     """
 
     def __init__(self, url, user, password, database=None):
-        """__init__(self):方法用于
+        """__init__(self):方法用于初始化数据
 
         Parameters
         ----------
@@ -42,10 +41,10 @@ class Pyneo4j:
         self.database = database
         self.node_matcher = NodeMatcher(self.driver)
         self.relationship_matcher = RelationshipMatcher(self.driver)
-        self._check_connect()  # 测试连接
+        self.check_connect()  # 测试连接
 
     @timeout_decorator.timeout(5)
-    def _check_connect(self):
+    def check_connect(self):
         """_check_connect方法用于测试连接是否成功,否则报错
         """
         self.driver.run("Match () Return 1 Limit 1")
@@ -65,7 +64,6 @@ class Pyneo4j:
         Returns
         ----------
         """
-        self._check_connect()  # 测试连接
         node = Node(*labels, **parameters)
         self.driver.create(node)
         if add_uid:
@@ -99,7 +97,6 @@ class Pyneo4j:
         Returns
         ----------
         """
-        self._check_connect()  # 测试连接
         if cover_parameters:
             for key in node.keys():
                 del node[key]
@@ -131,7 +128,6 @@ class Pyneo4j:
         Returns
         ----------
         """
-        self._check_connect()  # 测试连接
         if node:
             self.driver.delete(node)
         elif labels:
@@ -162,14 +158,12 @@ class Pyneo4j:
         Returns
         ----------
         """
-        self._check_connect()  # 测试连接
         relation = Relationship(node1, label, node2, **parameters)
         self.driver.create(relation)
         return relation
 
     def delete_all(self):
         """delete_all方法用于删除图数据所有数据,慎用"""
-        self._check_connect()  # 测试连接
         self.driver.delete_all()
 
     def run(self, cyper):
@@ -182,12 +176,41 @@ class Pyneo4j:
         Returns
         ----------
         """
-        self._check_connect()  # 测试连接
         cyper = cyper.lower()
         ret = self.driver.run(cyper)
         if 'return' in cyper:
             return ret.to_data_frame()
         return ret
+
+    def run_one(self, cyper):
+        """run_one(self):方法用于运行cyper返回第一个数据
+
+        Parameters
+        ----------
+        cyper : str
+            cyper 语句
+
+        Returns
+        ----------
+        """
+        cyper = cyper.lower()
+        ret = self.driver.evaluate(cyper)
+        return ret
+
+    def get_by_id(self, uid):
+        """get_id方法用于
+
+        Parameters
+        ----------
+        uid : int
+            节点自身的id
+
+        Returns
+        ----------
+        """
+        cyper = f'match (p) where id(p)={uid} return p limit 1'
+        node = self.driver.evaluate(cyper)
+        return node
 
     def delete_relationship(self, label1=[],
                             parameters1={}, r_label=None,
@@ -213,7 +236,6 @@ class Pyneo4j:
         Returns
         ----------
         """
-        self._check_connect()  # 测试连接
         node1 = self.node_matcher.match(*label1).where(**parameters1).first()
         node2 = self.node_matcher.match(*label2).where(**parameters2).first()
         relationships = self.relationship_matcher.match([node1, node2], r_type=r_label)
@@ -256,7 +278,6 @@ class Pyneo4j:
                 if key not in d1:
                     d1[key] = d2[key]
             return d1
-        self._check_connect()  # 测试连接
         if id:
             cyper = f'match g=(node1)-[r]->(node2) where id(r)={id} return g'
             graph = self.driver.evaluate(cyper)

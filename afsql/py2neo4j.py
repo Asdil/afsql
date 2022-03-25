@@ -14,7 +14,7 @@ __author__ = 'Asdil'
 import timeout_decorator
 from py2neo import Graph, Relationship, Node
 from py2neo.matching import RelationshipMatcher, NodeMatcher
-
+from afsql import pyneo4j
 
 class Pyneo4j:
     """
@@ -54,8 +54,8 @@ class Pyneo4j:
 
         Parameters
         ----------
-        labels : list
-            标签集合
+        labels : list or str
+            标签集合或者字符串
         parameters: dict
             参数字典
         add_uid: bool
@@ -64,6 +64,8 @@ class Pyneo4j:
         Returns
         ----------
         """
+        if type(labels) is str:
+            labels = [labels]
         node = Node(*labels, **parameters)
         self.driver.create(node)
         if add_uid:
@@ -73,9 +75,9 @@ class Pyneo4j:
             self.driver.push(node)
         return node
 
-    def update_node(self, node, labels=None, parameters=None,
+    def update_node(self, node, labels=None, parameters={},
                     cover_lables=False,
-                    cover_parameters=False,
+                    cover_parameters={},
                     add_uid=False):
         """update_node方法用于
 
@@ -105,6 +107,8 @@ class Pyneo4j:
         if add_uid:
             parameters['uid'] = node.identity
         if labels:
+            if type(labels) is str:
+                labels = [labels]
             node.update_labels(*labels)
         if parameters:
             node.update(**parameters)
@@ -141,7 +145,7 @@ class Pyneo4j:
             cycler = f'Match (p) where p.uid={uid} Delete p;'
             self.driver.run(cycler)
 
-    def create_relationship(self, node1, node2, label='', parameters=None):
+    def create_relationship(self, node1, node2, label='', parameters={}):
         """create_relationship方法用于
 
         Parameters
@@ -178,8 +182,6 @@ class Pyneo4j:
         """
         cyper = cyper.lower()
         ret = self.driver.run(cyper)
-        if 'return' in cyper:
-            return ret.to_data_frame()
         return ret
 
     def run_one(self, cyper):
@@ -198,7 +200,7 @@ class Pyneo4j:
         return ret
 
     def get_by_id(self, uid):
-        """get_id方法用于
+        """get_id方法用于用于根据id查找
 
         Parameters
         ----------
@@ -222,13 +224,13 @@ class Pyneo4j:
                             delete_node=True)
         Parameters
         ----------
-        label1: list or None
+        label1: list or str or None
             节点1的标签集合
-        parameters1: dict or None
+        parameters1: dict
             节点1的属性集合
-        label2: list or None
+        label2: list or str or None
             节点2的标签集合
-        parameters2: dict or None
+        parameters2: dict
             节点2的属性集合
         r_label:
             关系的标签
@@ -236,6 +238,10 @@ class Pyneo4j:
         Returns
         ----------
         """
+        if type(label1) is str:
+            label1 = [label1]
+        if type(label2) is str:
+            label2 = [label2]
         node1 = self.node_matcher.match(*label1).where(**parameters1).first()
         node2 = self.node_matcher.match(*label2).where(**parameters2).first()
         relationships = self.relationship_matcher.match([node1, node2], r_type=r_label)
@@ -255,13 +261,13 @@ class Pyneo4j:
         ----------
         id: int or None
             关系的id
-        label1: list or None
+        label1: list or str or None
             节点1的标签集合
-        parameters1: dict or None
+        parameters1: dict
             节点1的属性集合
-        label2: list or None
+        label2: list or str or None
             节点2的标签集合
-        parameters2: dict or None
+        parameters2: dict
             节点2的属性集合
         r_label:
             关系的标签
@@ -278,6 +284,12 @@ class Pyneo4j:
                 if key not in d1:
                     d1[key] = d2[key]
             return d1
+
+        if type(label1) is str:
+            label1 = [label1]
+        if type(label2) is str:
+            label2 = [label2]
+
         if id:
             cyper = f'match g=(node1)-[r]->(node2) where id(r)={id} return g'
             graph = self.driver.evaluate(cyper)

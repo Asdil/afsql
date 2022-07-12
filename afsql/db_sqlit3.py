@@ -37,7 +37,7 @@ class Sqlit3:
         self.drive.close()
 
     def select_all(self, sql, param=None):
-        """excute方法用于查询数据
+        """excute方法用于查询数据, 可变参数用?
 
         Parameters
         ----------
@@ -58,7 +58,7 @@ class Sqlit3:
         return ret
 
     def select_one(self, sql, param=None):
-        """excute方法用于查询数据
+        """excute方法用于查询数据, 可变参数用?
 
         Parameters
         ----------
@@ -80,6 +80,7 @@ class Sqlit3:
 
     def excute(self, sql, param=None):
         """excute方法用于查询数据库
+        UPDATE start_up SET pid=? WHERE id=1 AND pid=-1;
 
         Parameters
         ----------

@@ -11,12 +11,19 @@
 -------------------------------------------------
 """
 __author__ = 'Asdil'
-import timeout_decorator
+import warnings
+from uuid import uuid1
 from py2neo import Graph, Relationship, Node
 from py2neo.matching import RelationshipMatcher, NodeMatcher
-from afsql import pyneo4j
 
-class Pyneo4j:
+
+def get_uid():
+    """get_uid方法用于返回uid1
+    """
+    return str(uuid1())
+
+
+class Py2neo4j:
     """
     Neo4j类用于操作neo4j图数据库
     """
@@ -37,17 +44,27 @@ class Pyneo4j:
         Returns
         ----------
         """
-        self.driver = Graph(url, auth=(user, password), name=database)
+        self.url = url
+        self.user = user
+        self.password = password
         self.database = database
+        self.driver = Graph(url, auth=(user, password), name=database)
         self.node_matcher = NodeMatcher(self.driver)
         self.relationship_matcher = RelationshipMatcher(self.driver)
-        self.check_connect()  # 测试连接
 
-    @timeout_decorator.timeout(5)
-    def check_connect(self):
-        """_check_connect方法用于测试连接是否成功,否则报错
+    def reconnect(self):
+        """reconnect方法用于
         """
-        self.driver.run("Match () Return 1 Limit 1")
+        try:
+            del self.node_matcher
+            del self.relationship_matcher
+            del self.driver
+        except:
+            pass
+        self.driver = Graph(self.url, auth=(self.user, self.password), name=self.database)
+        self.node_matcher = NodeMatcher(self.driver)
+        self.relationship_matcher = RelationshipMatcher(self.driver)
+        return
 
     def create_node(self, labels, parameters, add_uid=False):
         """create_node方法用于创建node节点
@@ -64,21 +81,19 @@ class Pyneo4j:
         Returns
         ----------
         """
+        self.reconnect()
         if type(labels) is str:
             labels = [labels]
         node = Node(*labels, **parameters)
         self.driver.create(node)
         if add_uid:
-            uid = node.identity
-            parameters = {'uid': uid}
+            parameters = {'uid': get_uid()}
             node.update(**parameters)
             self.driver.push(node)
         return node
 
-    def update_node(self, node, labels=None, parameters={},
-                    cover_lables=False,
-                    cover_parameters={},
-                    add_uid=False):
+    def update_node(self, node, labels=None, parameters={}, cover_lables=False,
+                    cover_parameters=False, add_uid=False):
         """update_node方法用于
 
         Parameters
@@ -87,7 +102,7 @@ class Pyneo4j:
             节点对象
         labels : list or None
             标签集合
-        parameters: dict or None
+        parameters: dict
             参数字典
         cover_parameters: bool
             是否删除原有的属性，只保留更新的labels, parameters
@@ -99,17 +114,20 @@ class Pyneo4j:
         Returns
         ----------
         """
+        self.reconnect()
+        if parameters is None:
+            parameters = {}
         if cover_parameters:
             for key in node.keys():
                 del node[key]
         if cover_lables:
             node.clear_labels()
         if add_uid:
-            parameters['uid'] = node.identity
+            parameters['uid'] = get_uid()
         if labels:
             if type(labels) is str:
                 labels = [labels]
-            node.update_labels(*labels)
+            node.update_labels(labels)
         if parameters:
             node.update(**parameters)
         self.driver.push(node)
@@ -124,7 +142,7 @@ class Pyneo4j:
             节点对象
         id: int or None
             节点id
-        uid: int or None
+        uid: str or None
             节点uid
         labels: str or None
             节点标签集合
@@ -132,20 +150,21 @@ class Pyneo4j:
         Returns
         ----------
         """
+        self.reconnect()
         if node:
             self.driver.delete(node)
         elif labels:
             labels = ':'.join(labels)
-            cyper = f'Match (p:{labels}) Delete p;'
+            cyper = f'MATCH (p:{labels}) DELETE p;'
             self.driver.run(cyper)
         elif id:
-            cyper = f'Match (p) Where id(p)={id} Delete p;'
-            self.driver.run(cyper)
+            cyper = f'MATCH (p) WHERE id(p)=$id DELETE p;'
+            self.driver.run(cyper, {'id': id})
         elif uid:
-            cycler = f'Match (p) where p.uid={uid} Delete p;'
-            self.driver.run(cycler)
+            cycler = f'MATCH (p) WHERE p.uid=$uid DELETE p;'
+            self.driver.run(cycler, {'uid': uid})
 
-    def create_relationship(self, node1, node2, label='', parameters={}):
+    def create_relationship(self, node1, node2, label='', parameters={}, add_uid=False):
         """create_relationship方法用于
 
         Parameters
@@ -156,47 +175,60 @@ class Pyneo4j:
             节点2
         label: str
             节点关系
-        parameters: dict or None
+        parameters: dict
             关系属性
+        add_uid: bool
+            是否添加uid
 
         Returns
         ----------
         """
+        self.reconnect()
         relation = Relationship(node1, label, node2, **parameters)
         self.driver.create(relation)
+        if add_uid:
+            parameters = {'uid': get_uid()}
+            relation.update(**parameters)
+        self.driver.push(relation)
         return relation
 
     def delete_all(self):
         """delete_all方法用于删除图数据所有数据,慎用"""
+        self.reconnect()
         self.driver.delete_all()
 
-    def run(self, cyper):
+    def run(self, cyper, parameters=None):
         """run方法用于运行cyper
+        eg: cyper = 'match (p1)-[r]->(p2) where labels(p1)=$l1 return p1'
+            neo4j_db.run(cyper, {'l1': ['aa']})
 
         Parameters
         ----------
         cyper : str
             cyper 语句
+        parameters: dict or None
+            参数列表
         Returns
         ----------
         """
-        cyper = cyper.lower()
-        ret = self.driver.run(cyper)
+        self.reconnect()
+        ret = self.driver.run(cyper, parameters)
         return ret
 
-    def run_one(self, cyper):
+    def run_one(self, cyper, parameters=None):
         """run_one(self):方法用于运行cyper返回第一个数据
 
         Parameters
         ----------
         cyper : str
             cyper 语句
-
+        parameters: dict or None
+            参数列表
         Returns
         ----------
         """
-        cyper = cyper.lower()
-        ret = self.driver.evaluate(cyper)
+        self.reconnect()
+        ret = self.driver.evaluate(cyper, parameters)
         return ret
 
     def get_by_id(self, uid):
@@ -204,26 +236,36 @@ class Pyneo4j:
 
         Parameters
         ----------
-        uid : int
+        uid : str or int
             节点自身的id
 
         Returns
         ----------
         """
-        cyper = f'match (p) where id(p)={uid} return p limit 1'
-        node = self.driver.evaluate(cyper)
+        self.reconnect()
+        if type(uid) is int:
+            cyper = f'match (p) where id(p)=$uid return p limit 1'
+        else:
+            cyper = f'match (p) where id(p)=$uid return p limit 1'
+        node = self.driver.evaluate(cyper, {'uid': uid})
         return node
 
-    def delete_relationship(self, label1=[],
-                            parameters1={}, r_label=None,
+    def delete_relationship(self, node1=None, node2=None, label1=[], parameters1={}, r_label=None,
                             label2=[], parameters2={}, delete_node=False):
         """delete_relationship方法用于删除关系或者关系和节点
         db.delete_relationship(label1=['xxx'],
                              parameters1={'a':2},
                             label2=['yyy'],
                             delete_node=True)
+        db.delete_relationship(node1=node1,
+                             node2=node2,
+                            r_label=['yyy'])
         Parameters
         ----------
+        node1: Node or None
+            from 节点
+        node2: Node or None
+            to 节点
         label1: list or str or None
             节点1的标签集合
         parameters1: dict
@@ -232,35 +274,43 @@ class Pyneo4j:
             节点2的标签集合
         parameters2: dict
             节点2的属性集合
-        r_label:
+        r_label: str
             关系的标签
+        delete_node: bool
+            是否同时删除节点，需要正没有其他的关系
 
         Returns
         ----------
         """
-        if type(label1) is str:
-            label1 = [label1]
-        if type(label2) is str:
-            label2 = [label2]
-        node1 = self.node_matcher.match(*label1).where(**parameters1).first()
-        node2 = self.node_matcher.match(*label2).where(**parameters2).first()
+        self.reconnect()
+        # 判断是否传入节点
+        if not node1:
+            label1 = [label1] if type(label1) is str else label1
+            label2 = [label2] if type(label2) is str else label2
+            node1 = self.node_matcher.match(*label1).where(**parameters1).first()
+            node2 = self.node_matcher.match(*label2).where(**parameters2).first()
         relationships = self.relationship_matcher.match([node1, node2], r_type=r_label)
         for relationship in relationships.all():
             self.driver.separate(relationship)
+        if delete_node:
+            self.driver.delete(node1)
+            self.driver.delete(node2)
 
-            if delete_node:
-                self.driver.delete(node1)
-                self.driver.delete(node2)
-
-    def update_relationship(self, id=None, label1=[], parameters1={},
+    def update_relationship(self, node1=None, node2=None, id=None, uid=None, label1=[], parameters1={},
                             r_label=None, label2=[], parameters2={}, new_r_label=None,
                             new_r_parameters={}):
         """update_relationship方法用于更新关系
 
         Parameters
         ----------
+        node1: Node
+            from节点
+        node2: Node
+            to节点
         id: int or None
             关系的id
+        uid: str or None
+            关系的uid
         label1: list or str or None
             节点1的标签集合
         parameters1: dict
@@ -273,26 +323,48 @@ class Pyneo4j:
             关系的标签
         new_r_label: str or None
             新的关系标签
-        new_r_parameters: dict or None
+        new_r_parameters: dict
             新的关系属性
 
         Returns
         ----------
         """
+        self.reconnect()
+
         def combine_dict(d1, d2):
             for key in d2:
                 if key not in d1:
                     d1[key] = d2[key]
             return d1
 
+        if node1 and node2:
+            relationships = self.relationship_matcher.match([node1, node2], r_type=r_label)
+            relationships = relationships.all()
+            if not relationships:
+                warnings.warn('警告！没有匹配到关系，请检查')
+            for relationship in relationships:
+                if new_r_label:
+                    parameters = dict(relationship)
+                    new_r_parameters = combine_dict(new_r_parameters, parameters)
+                    # 删除关系
+                    self.driver.separate(relationship)
+                    self.create_relationship(node1, node2, new_r_label, new_r_parameters)
+                else:
+                    relationship.update(**new_r_parameters)
+                    self.driver.push(relationship)
+            return
+
         if type(label1) is str:
             label1 = [label1]
         if type(label2) is str:
             label2 = [label2]
-
-        if id:
-            cyper = f'match g=(node1)-[r]->(node2) where id(r)={id} return g'
-            graph = self.driver.evaluate(cyper)
+        if uid or id:
+            if uid:
+                cyper = f'MATCH g=(node1)-[r]->(node2) WHERE r.uid=$uid RETURN g'
+            else:
+                uid = id
+                cyper = f'MATCH g=(node1)-[r]->(node2) WHERE id(r)=$uid RETURN g'
+            graph = self.driver.evaluate(cyper, {'uid': uid})
             relationship = graph.relationships[0]
             node1, node2 = graph.nodes
             if new_r_label:

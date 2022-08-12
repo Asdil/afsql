@@ -49,22 +49,6 @@ class Py2neo4j:
         self.password = password
         self.database = database
         self.driver = Graph(url, auth=(user, password), name=database)
-        self.node_matcher = NodeMatcher(self.driver)
-        self.relationship_matcher = RelationshipMatcher(self.driver)
-
-    def reconnect(self):
-        """reconnect方法用于
-        """
-        try:
-            del self.node_matcher
-            del self.relationship_matcher
-            del self.driver
-        except:
-            pass
-        self.driver = Graph(self.url, auth=(self.user, self.password), name=self.database)
-        self.node_matcher = NodeMatcher(self.driver)
-        self.relationship_matcher = RelationshipMatcher(self.driver)
-        return
 
     def create_node(self, labels, parameters, add_uid=False):
         """create_node方法用于创建node节点
@@ -81,7 +65,6 @@ class Py2neo4j:
         Returns
         ----------
         """
-        self.reconnect()
         if type(labels) is str:
             labels = [labels]
         node = Node(*labels, **parameters)
@@ -114,7 +97,6 @@ class Py2neo4j:
         Returns
         ----------
         """
-        self.reconnect()
         if parameters is None:
             parameters = {}
         if cover_parameters:
@@ -150,7 +132,6 @@ class Py2neo4j:
         Returns
         ----------
         """
-        self.reconnect()
         if node:
             self.driver.delete(node)
         elif labels:
@@ -183,7 +164,6 @@ class Py2neo4j:
         Returns
         ----------
         """
-        self.reconnect()
         relation = Relationship(node1, label, node2, **parameters)
         self.driver.create(relation)
         if add_uid:
@@ -194,7 +174,6 @@ class Py2neo4j:
 
     def delete_all(self):
         """delete_all方法用于删除图数据所有数据,慎用"""
-        self.reconnect()
         self.driver.delete_all()
 
     def run(self, cyper, parameters=None):
@@ -211,7 +190,6 @@ class Py2neo4j:
         Returns
         ----------
         """
-        self.reconnect()
         ret = self.driver.run(cyper, parameters)
         return ret
 
@@ -227,7 +205,6 @@ class Py2neo4j:
         Returns
         ----------
         """
-        self.reconnect()
         ret = self.driver.evaluate(cyper, parameters)
         return ret
 
@@ -242,7 +219,6 @@ class Py2neo4j:
         Returns
         ----------
         """
-        self.reconnect()
         if type(uid) is int:
             cyper = f'match (p) where id(p)=$uid return p limit 1'
         else:
@@ -282,14 +258,15 @@ class Py2neo4j:
         Returns
         ----------
         """
-        self.reconnect()
         # 判断是否传入节点
         if not node1:
+            node_matcher = NodeMatcher(self.driver)
             label1 = [label1] if type(label1) is str else label1
             label2 = [label2] if type(label2) is str else label2
-            node1 = self.node_matcher.match(*label1).where(**parameters1).first()
-            node2 = self.node_matcher.match(*label2).where(**parameters2).first()
-        relationships = self.relationship_matcher.match([node1, node2], r_type=r_label)
+            node1 = node_matcher.match(*label1).where(**parameters1).first()
+            node2 = node_matcher.match(*label2).where(**parameters2).first()
+        relationship_matcher = RelationshipMatcher(self.driver)
+        relationships = relationship_matcher.match([node1, node2], r_type=r_label)
         for relationship in relationships.all():
             self.driver.separate(relationship)
         if delete_node:
@@ -329,8 +306,6 @@ class Py2neo4j:
         Returns
         ----------
         """
-        self.reconnect()
-
         def combine_dict(d1, d2):
             for key in d2:
                 if key not in d1:
@@ -338,7 +313,8 @@ class Py2neo4j:
             return d1
 
         if node1 and node2:
-            relationships = self.relationship_matcher.match([node1, node2], r_type=r_label)
+            relationship_matcher = RelationshipMatcher(self.driver)
+            relationships = relationship_matcher.match([node1, node2], r_type=r_label)
             relationships = relationships.all()
             if not relationships:
                 warnings.warn('警告！没有匹配到关系，请检查')
@@ -377,9 +353,11 @@ class Py2neo4j:
                 relationship.update(new_r_parameters)
                 self.driver.push(relationship)
         else:
-            node1 = self.node_matcher.match(*label1).where(**parameters1).first()
-            node2 = self.node_matcher.match(*label2).where(**parameters2).first()
-            relationships = self.relationship_matcher.match([node1, node2], r_type=r_label)
+            node_matcher = NodeMatcher(self.driver)
+            relationship_matcher = RelationshipMatcher(self.driver)
+            node1 = node_matcher.match(*label1).where(**parameters1).first()
+            node2 = node_matcher.match(*label2).where(**parameters2).first()
+            relationships = relationship_matcher.match([node1, node2], r_type=r_label)
             for relationship in relationships.all():
                 if new_r_label:
                     parameters = dict(relationship)
